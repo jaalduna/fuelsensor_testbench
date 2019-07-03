@@ -1,0 +1,315 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Tutorial &mdash; Fuelsensor api 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Estructura de paquetes" href="low_level_interface.html" />
+    <link rel="prev" title="Welcome to Fulsensor API documentation!" href="index.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Fuelsensor api
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#objetivos">Objetivos</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#introduccion">Introducción</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api-bootloader">Api Bootloader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api-fuelsensor-interface">Api Fuelsensor_interface</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="low_level_interface.html">Estructura de paquetes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code.html">Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Fuelsensor api</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Tutorial</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/tutorial.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="objetivos">
+<h2>Objetivos<a class="headerlink" href="#objetivos" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li>Aprender a usar la api Bootloader</li>
+<li>Aprender a usar la api Fuelsensor_interface</li>
+</ol>
+</div>
+<div class="section" id="introduccion">
+<h2>Introducción<a class="headerlink" href="#introduccion" title="Permalink to this headline">¶</a></h2>
+<p>El dispositivo FuelSensor, actualmente en su versión 1.8, permite medir la altura de liquidos en estanques de manera no invasiva. Haciendolo especialmente util en escenarios donde no hay acceso al interior de los estanques.</p>
+<p>El firmware en el dispositivo FuelSensor se controla mediante dos api: bootloader y Fuelsensor_interface.
+La interfaz Bootloader permite adminsitrar la aplicación que se ejecutará en operación normal del dispositvo. Mientras que la api FuelSensor_interface corresponde a la interfaz de la aplicación y permite obtener controlar los distintos sensores y actuadores del dispositivo, así como también obtener variables de interes tales como altura del estanque, series de tiempo, entre otras.</p>
+<p>Las interfaces están escritas en <a class="reference external" href="https://www.python.org/downloads/release/python-2713/">Python 2.7</a> , luego para poder utilizarlas, es necesario tenerlo instalado tu computador.</p>
+<p>Además deberas instalar los paquetes de dependencia crcmod y matplotlib mediante pip:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip install crcmod
+pip install matplotlib
+</pre></div>
+</div>
+<p>Antes de comenzar las pruebas, procurar que el dispositivo FuelSensor esté alimentado y el cable ethernet esté conectado.</p>
+<p>El equipo FuelSensor posee en su interior el conversor ethernet serial Wiznet 108sr. El conversor opera como un servidor TCP por lo que será necesario configurar la interfaz ethernet en tu computador para que ambos equipos se encuentren en la misma red y así poder establer comunicación. La IP por defecto en los equipos Wiznet es 192.168.0.10 y el puerto de comunicación debería ser 5000. De todas formas, es posible validar estos parametros y si es necesario actualizarlos mediante la aplicación <a class="reference external" href="https://www.wiznet.io/wp-content/uploads/wiznethome/S2E%20Module/WIZ107_108SR/Utility/WIZ107_108_config_tool.zip">configTool</a> de Wiznet. Con los parámetros correctamente configurados, ya deberíamos poder utilizar la api de Bootloader.</p>
+</div>
+<div class="section" id="api-bootloader">
+<h2>Api Bootloader<a class="headerlink" href="#api-bootloader" title="Permalink to this headline">¶</a></h2>
+<p>El dispositivo FuelSensor trae desde fabrica un firmware que permite actualizar la aplicación que se ejecutará en operación normal. La interfaz de esta firmware corresponde a la api de Bootloader.</p>
+<p>En la carpeta <code class="docutils literal notranslate"><span class="pre">src</span></code> ejecutarmos un terminal de python  y crearemos una instancia de la clase api Bootloader:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Bootloader</span> <span class="kn">import</span> <span class="n">Bootloader</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Bootloader</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Con la instancia creada podemos corroborar que todo este ok preguntando por la versión del Bootloader</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">b</span><span class="o">.</span><span class="n">read_version</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>La api intentará conectarse con el dispositivo y encuestará la versión del bootloader. Si todo marcha bien, debería aparecer en pantalla como respuesta la versión actual del Firmware de bootloader.</p>
+<p>Ahora cargaremos una nueva app al dispositivo. Para eso almacenaremos la aplicación compilada en la carpeta <code class="docutils literal notranslate"><span class="pre">src</span></code>. Cargaremos la aplicación mediante la siguiente serie de comandos</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">b</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">b</span><span class="o">.</span><span class="n">program_file</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+<span class="n">b</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Reemplazando <cite>file_name</cite> por el nombre de la aplicación. El proceso de carga debería comenzar y el porcentaje de avanze debería desplegarse en pantalla. Una vez finalizado el proceso de carga debemos indicarla al Dispositivo que salga del modo Bootloader y entre al de Aplicación. Realizaremos esto mediante la siguiente serie de comandos:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">b</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">b</span><span class="o">.</span><span class="n">jump_to_app</span><span class="p">()</span>
+<span class="n">b</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>El firmware de la App ya debería estar corriendo.</p>
+</div>
+<div class="section" id="api-fuelsensor-interface">
+<h2>Api Fuelsensor_interface<a class="headerlink" href="#api-fuelsensor-interface" title="Permalink to this headline">¶</a></h2>
+<p>Con el dispositivo configurado en modo aplicación ya podemos comenzar a encuestarla.
+Al igual que en el caso de la api Bootloader, debemos crear una instancia de la interfaz Fuelsensor_interface. Realizaremos esto mediante la secuencia de comandos:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">FuelSensor_interface</span> <span class="kn">import</span> <span class="n">FuelSensor_interface</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="n">FuelSensor_interface</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Con la interfaz creada, podemos obtener información de la altura del liquido en metros mediante el comando</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fs</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">fs</span><span class="o">.</span><span class="n">get_hight</span><span class="p">()</span>
+<span class="n">fs</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>O bien el una variable entera proporcional al tiempo de vuelo de la señal:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fs</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">fs</span><span class="o">.</span><span class="n">get_pos</span><span class="p">()</span>
+<span class="n">fs</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>También podemos obtener series de tiempo del eco normalizado</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fs</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">norm_echo_ts</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">get_complete_norm_echo</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+<span class="n">fs</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Reemplazar <code class="docutils literal notranslate"><span class="pre">length</span></code> por el numero de muestras de tiempo a encuestar. Esta función diagnóstica es especialmente util a la hora de detectar problemas en la intalación del equipo u otros que influyan en la calidad del eco.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fs</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">sdft_echo_ts</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">get_complete_sdft_echo</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+<span class="n">fs</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Reemplazar <code class="docutils literal notranslate"><span class="pre">length</span></code> por el número de muestras de tiempo a encuestar. Esta función diagnóstica permite determinar si la SDFT calculada posee un peak distintivo en el instante del eco.</p>
+<p>Obtener la respuesta completa del eco no siempre es necesario y toma tiempo. Si ya conocemos de forma aproximada donde debería encontrarse el eco, podemos encuestar una porción de la respuesta completa mediante los comandos:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fs</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">sliced_norm_echo_ts</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">get_norm_echo</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+<span class="n">sliced_sdft_echo_ts</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">get_sdft_echo</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+<span class="n">fs</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">offset</span></code> es el número de muestras a saltarse desde el principio y <code class="docutils literal notranslate"><span class="pre">length</span></code> el largo del intervalo a encuestar.</p>
+<p>Finalmente, para volver al modo Bootloader es necesario reiniciar el dispositivo mediante el comando:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fs</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+<span class="n">fs</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">fs</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Notar que si el dispositivo se reinicia debido a un corte de energía, entrará al modo Bootloader y por tanto para volver al modo aplicación será necesario reenviar el comando <code class="docutils literal notranslate"><span class="pre">jump_to_app</span></code>.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="low_level_interface.html" class="btn btn-neutral float-right" title="Estructura de paquetes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Welcome to Fulsensor API documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Joaquin Aldunate V
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

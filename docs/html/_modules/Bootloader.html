@@ -1,0 +1,589 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Bootloader &mdash; Fuelsensor api 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Fuelsensor api
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../low_level_interface.html">Estructura de paquetes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../code.html">Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Fuelsensor api</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>Bootloader</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for Bootloader</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">crcmod</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="c1">#AN1388 Microchip bootloader implementation</span>
+
+<span class="c1">#constants declaration</span>
+
+<span class="c1">##Control character description</span>
+<span class="n">SOH</span>  <span class="o">=</span> <span class="mh">0x01</span> <span class="c1">#Marks the beginning of a frame</span>
+<span class="n">EOT</span> <span class="o">=</span> <span class="mh">0x04</span> <span class="c1">#Marks the end of a frame</span>
+<span class="n">DLE</span> <span class="o">=</span> <span class="mh">0x10</span> <span class="c1">#Data link escape</span>
+
+<span class="c1">##Command description</span>
+<span class="n">READ_BOOTLOADER_VERSION</span> <span class="o">=</span> <span class="mh">0x01</span>
+<span class="n">ERASE_FLASH</span> <span class="o">=</span> <span class="mh">0x02</span>
+<span class="n">PROGRAM_FLASH</span> <span class="o">=</span> <span class="mh">0x03</span>
+<span class="n">READ_CRC</span> <span class="o">=</span> <span class="mh">0x04</span>
+<span class="n">JUMP_TO_APP</span> <span class="o">=</span> <span class="mh">0x05</span>
+
+<span class="n">crc16</span> <span class="o">=</span> <span class="n">crcmod</span><span class="o">.</span><span class="n">predefined</span><span class="o">.</span><span class="n">mkPredefinedCrcFun</span><span class="p">(</span><span class="s2">&quot;xmodem&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Bootloader"><a class="viewcode-back" href="../code.html#Bootloader.Bootloader">[docs]</a><span class="k">class</span> <span class="nc">Bootloader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Bootloader class&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">tcp_ip</span><span class="o">=</span><span class="s1">&#39;192.168.0.10&#39;</span><span class="p">,</span> <span class="n">tcp_port</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Bootloader</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="sd">&quot;&quot;&quot; Constructor. No parameters are expected&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TCP_IP</span> <span class="o">=</span> <span class="n">tcp_ip</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TCP_PORT</span> <span class="o">=</span> <span class="n">tcp_port</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">BUFFER_SIZE</span>  <span class="o">=</span> <span class="mi">1024</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="n">timeout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Bootloader.read_version"><a class="viewcode-back" href="../code.html#Bootloader.Bootloader.read_version">[docs]</a>    <span class="k">def</span> <span class="nf">read_version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return bootloader firmware version from FuelSensor device.</span>
+<span class="sd">        Function calls internally connect() and close_socket(), so there is no need to call them manually.&quot;&quot;&quot;</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tx_rx_cmd</span><span class="p">(</span><span class="n">READ_BOOTLOADER_VERSION</span><span class="p">,</span><span class="mi">7</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1">#get version</span>
+            <span class="n">mayor_version</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">minor_version</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="nb">print</span> <span class="s2">&quot;Bootloader version: &quot;</span><span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">mayor_version</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">minor_version</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s2">&quot;error&quot;</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">tx_rx_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">cmd_name</span><span class="p">,</span> <span class="n">response_len</span><span class="p">,</span> <span class="n">payload</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">connect</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="n">packet</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="n">packet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SOH</span><span class="p">)</span>
+        <span class="n">packet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cmd_name</span><span class="p">)</span>
+        <span class="c1">#crc calculation</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">payload</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">packet</span> <span class="o">+=</span> <span class="n">payload</span>
+        <span class="n">packet</span> <span class="o">+=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;H&quot;</span><span class="p">,</span> <span class="n">crc16</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">packet</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">packet</span><span class="p">)])))</span> <span class="c1"># calculate CRC discarding SOH</span>
+        <span class="n">packet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">EOT</span><span class="p">)</span>
+        <span class="n">packet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">receive_retry</span><span class="p">(</span><span class="n">packet</span><span class="p">,</span><span class="n">response_len</span><span class="p">,</span><span class="kc">False</span><span class="p">,</span> <span class="n">connect</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+
+
+        <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">check_crc</span><span class="p">(</span><span class="n">response</span><span class="p">)):</span>
+            <span class="k">pass</span>
+            <span class="c1">#print &quot;crc ok&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s2">&quot;crc error&quot;</span>
+            <span class="k">return</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">cmd_name</span><span class="p">):</span>
+            <span class="k">pass</span>
+            <span class="c1">#print &quot;READ_BOOTLOADER_VERSION response&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s2">&quot;invalid cmd answer&quot;</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">response</span>
+
+<div class="viewcode-block" id="Bootloader.erase_flash"><a class="viewcode-back" href="../code.html#Bootloader.Bootloader.erase_flash">[docs]</a>    <span class="k">def</span> <span class="nf">erase_flash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">connect</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Erase program memory flash from FuelSensor device.</span>
+<span class="sd">        This function only clear the app. Bootloader persist on memory.</span>
+<span class="sd">        </span>
+<span class="sd">        &#39;connect&#39; parameter controls if tcp connection is stablished before executing the the erase flash operation.</span>
+<span class="sd">        Always keep it as True, or wich is the same, call the function with the default values as erase_flash()&quot;&quot;&quot;</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tx_rx_cmd</span><span class="p">(</span><span class="n">ERASE_FLASH</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="n">connect</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s2">&quot;flash erased&quot;</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s2">&quot;error&quot;</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+<span class="c1">#02 00 00 04 00 00 fa</span>
+    <span class="k">def</span> <span class="nf">program_flash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">connect</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="n">record_in_bytes</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tx_rx_cmd</span><span class="p">(</span><span class="n">PROGRAM_FLASH</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="n">record_in_bytes</span><span class="p">,</span> <span class="n">connect</span><span class="p">)</span>
+        <span class="c1">#self.print_modbus(str(response))</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="nb">print</span> <span class="s2">&quot;program ok&quot;</span>
+
+    <span class="k">def</span> <span class="nf">read_crc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">addr</span><span class="p">,</span> <span class="n">num_bytes</span><span class="p">):</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="n">payload</span> <span class="o">+=</span> <span class="n">addr</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">num_bytes</span><span class="p">):</span><span class="kc">None</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">payload</span> <span class="o">+=</span><span class="n">num_bytes</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">num_bytes</span><span class="p">):</span><span class="kc">None</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_modbus</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">payload</span><span class="p">))</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tx_rx_cmd</span><span class="p">(</span><span class="n">READ_CRC</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="n">payload</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">):</span>
+            <span class="nb">print</span> <span class="s2">&quot;crc received: &quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">print_modbus</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]))</span>
+
+<div class="viewcode-block" id="Bootloader.jump_to_app"><a class="viewcode-back" href="../code.html#Bootloader.Bootloader.jump_to_app">[docs]</a>    <span class="k">def</span> <span class="nf">jump_to_app</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Jump to application from bootloader.&quot;&quot;&quot;</span>
+        <span class="nb">print</span> <span class="s2">&quot;jumping to app&quot;</span>
+        <span class="n">packet</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="n">packet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SOH</span><span class="p">)</span>
+        <span class="n">packet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">JUMP_TO_APP</span><span class="p">)</span>
+        <span class="n">packet</span> <span class="o">+=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;H&quot;</span><span class="p">,</span> <span class="n">crc16</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">packet</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">packet</span><span class="p">)])))</span> <span class="c1"># calculate CRC discarding SOH</span>
+        <span class="n">packet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">EOT</span><span class="p">)</span>
+        <span class="n">packet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span></div>
+        <span class="c1"># response = self.receive_retry(packet,0,False)</span>
+
+    <span class="k">def</span> <span class="nf">check_crc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="n">calculated_crc</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="n">calculated_crc</span> <span class="o">+=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;H&quot;</span><span class="p">,</span> <span class="n">crc16</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="o">-</span> <span class="mi">2</span><span class="p">])))</span>
+        <span class="c1">#self.print_modbus(str(calculated_crc))</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">calculated_crc</span> <span class="o">==</span> <span class="n">msg</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="o">-</span><span class="mi">2</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">msg</span><span class="p">)]):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># print &quot;packet content: &quot;,</span>
+        <span class="c1"># print(&quot;:&quot;.join(&quot;{:02x}&quot;.format(ord(c)) for c in str(packet)))</span>
+    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet</span><span class="p">):</span>
+        <span class="c1">#for each data byte</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">packet</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">DLE</span> <span class="ow">or</span> <span class="n">x</span> <span class="o">==</span> <span class="n">SOH</span> <span class="ow">or</span> <span class="n">x</span> <span class="o">==</span> <span class="n">EOT</span><span class="p">):</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DLE</span><span class="p">)</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packet</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet</span><span class="p">):</span>
+        <span class="n">prev_is_dle</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1">#for each data byte</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="c1">#find first SOH byte</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">packet</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x01</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="nb">print</span> <span class="s2">&quot;First byte is not SOH!&quot;</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">packet</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">]</span> <span class="o">!=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x04</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="nb">print</span> <span class="s2">&quot;Last byte is not EOT&quot;</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">packet</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span> <span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">prev_is_dle</span><span class="p">):</span>
+                <span class="n">prev_is_dle</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">elif</span><span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x10</span><span class="s1">&#39;</span><span class="p">):</span>
+                <span class="n">prev_is_dle</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">prev_is_dle</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+<div class="viewcode-block" id="Bootloader.connect"><a class="viewcode-back" href="../code.html#Bootloader.Bootloader.connect">[docs]</a>    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Try to stablish a tcp/ip socket with FuelSensor device. &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s2">&quot;connecting...&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">TCP_IP</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TCP_PORT</span><span class="p">))</span>
+                <span class="c1">#self.socket.settimeout(None)</span>
+                <span class="nb">print</span> <span class="s2">&quot;success!&quot;</span>
+                <span class="k">return</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s2">&quot;can&#39;t connect&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span></div>
+                <span class="c1">#return</span>
+
+    <span class="k">def</span> <span class="nf">receive_retry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">packet</span><span class="p">,</span><span class="n">length</span><span class="p">,</span><span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span><span class="n">connect</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">stop_time</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="nb">print</span> <span class="n">connect</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">connect</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">verbose</span><span class="p">):</span>
+                    <span class="nb">print</span> <span class="s2">&quot;sending: &quot;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">print_modbus</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">packet</span><span class="p">))</span>
+                <span class="n">start_time</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">)</span>
+                <span class="c1">#self.print_modbus(str(packet))</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+                <span class="n">counter</span> <span class="o">=</span> <span class="mi">5</span> 
+                <span class="n">data</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="k">while</span><span class="p">(</span><span class="n">counter</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">):</span>
+                        <span class="n">counter</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">data</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">BUFFER_SIZE</span><span class="p">)</span>
+                        
+                        <span class="c1"># if(verbose):</span>
+                        <span class="c1">#     print data</span>
+                            <span class="c1">#self.print_modbus(data)</span>
+                         
+                        <span class="k">if</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">length</span><span class="p">):</span>
+                            <span class="n">stop_time</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">)</span>
+                            <span class="k">if</span><span class="p">(</span><span class="n">connect</span><span class="p">):</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+                            <span class="k">if</span><span class="p">(</span><span class="n">verbose</span><span class="p">):</span>
+                                <span class="nb">print</span> <span class="s2">&quot;time elapsed: &quot;</span><span class="p">,</span>
+                                <span class="nb">print</span> <span class="nb">str</span><span class="p">(</span><span class="n">stop_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+                                <span class="nb">print</span> <span class="s2">&quot;data received ok: &quot;</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">print_modbus</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                            <span class="k">return</span> <span class="n">data</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="mi">0</span>
+                
+            <span class="k">except</span><span class="p">:</span>
+                
+                <span class="nb">print</span> <span class="s2">&quot;no answer...&quot;</span><span class="p">,</span>
+                
+                <span class="k">if</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Bootloader.close_socket"><a class="viewcode-back" href="../code.html#Bootloader.Bootloader.close_socket">[docs]</a>    <span class="k">def</span> <span class="nf">close_socket</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Try to close socket connection.&quot;&quot;&quot;</span>
+        <span class="c1">#lets close socket</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+        <span class="c1">#lets reasign socket so it can be opened again</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">print_modbus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">res</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:02x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">))</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">res</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">calculate_record_crc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="c1">#record structure :BBaaAATTDDCC</span>
+        <span class="c1">#transform record into bytearray</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+
+        <span class="c1">#get number of num_bytes</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">num_bytes</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1">#address</span>
+        <span class="n">addr_h</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">addr_l</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1">#get type</span>
+        <span class="n">_type</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">_type</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span> <span class="c1">#if data record</span>
+            <span class="n">i</span> <span class="o">+=</span><span class="mi">1</span>
+            <span class="c1">#lets calculate data crc</span>
+            <span class="n">calculated_crc</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;H&quot;</span><span class="p">,</span> <span class="n">crc16</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_bytes</span><span class="p">])))</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">num_bytes</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">addr_h</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">addr_l</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_type</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">calculated_crc</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+    <span class="c1">#this function is not implemented yet</span>
+    <span class="k">def</span> <span class="nf">program_flash_and_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="c1">#TODO: keep track of high bytes address on each write record so CRC</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_record_crc</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="n">calculated_crc</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">program_flash</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">program_flash</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">file_len</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+                <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+
+<div class="viewcode-block" id="Bootloader.program_file"><a class="viewcode-back" href="../code.html#Bootloader.Bootloader.program_file">[docs]</a>    <span class="k">def</span> <span class="nf">program_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">,</span> <span class="n">connect</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Program file specified in parameter &#39;file_name&#39; .&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">erase_flash</span><span class="p">(</span><span class="n">connect</span><span class="p">)</span>
+
+        <span class="n">numLinesTotal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_len</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+        <span class="n">numLines</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="n">mtu</span> <span class="o">=</span> <span class="mi">900</span> 
+
+        <span class="k">while</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+            <span class="nb">print</span> <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">programming: </span><span class="si">{:0.1f}</span><span class="s2">%&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">numLines</span><span class="o">*</span><span class="mf">1.0</span><span class="o">/</span><span class="n">numLinesTotal</span><span class="o">*</span><span class="mi">100</span><span class="p">),</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            <span class="n">num_bytes</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">inc</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">mtu</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="k">break</span>
+                <span class="n">record</span> <span class="o">+=</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">inc</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="nb">print</span> <span class="s2">&quot;record len: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">record</span><span class="p">))</span>
+
+            <span class="k">if</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="nb">print</span> <span class="s2">&quot;&quot;</span>
+                <span class="nb">print</span> <span class="s2">&quot;program transfer complete ;)&quot;</span>
+                <span class="k">break</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">program_flash</span><span class="p">(</span><span class="n">record</span><span class="p">,</span><span class="kc">False</span><span class="p">,</span> <span class="n">connect</span><span class="p">)</span>
+            <span class="n">numLines</span> <span class="o">+=</span><span class="n">inc</span></div>
+    <span class="k">def</span> <span class="nf">validate_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="n">numLinesTotal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_len</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+        <span class="n">numLines</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="k">while</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+            <span class="nb">print</span> <span class="s2">&quot;</span><span class="se">\v</span><span class="s2">alidating: </span><span class="si">{:0.1f}</span><span class="s2">%&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">numLines</span><span class="o">*</span><span class="mf">1.0</span><span class="o">/</span><span class="n">numLinesTotal</span><span class="o">*</span><span class="mi">100</span><span class="p">),</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            <span class="n">num_bytes</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">inc</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="nb">print</span> <span class="s2">&quot;&quot;</span>
+                <span class="nb">print</span> <span class="s2">&quot;program transfer complete ;)&quot;</span>
+                <span class="k">break</span>
+    <span class="k">def</span> <span class="nf">enter_bootloader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="nb">bytearray</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span></div>
+<span class="c1"># b = Bootloader()</span>
+<span class="c1"># b.read_version()</span>
+<span class="c1"># b.connect()</span>
+<span class="c1"># b.program_file(&quot;aiko1_diciembre.hex&quot;, False)</span>
+<span class="c1"># b.close_socket()</span>
+
+<span class="c1"># b.connect()</span>
+<span class="c1"># b.jump_to_app();</span>
+<span class="c1"># b.close_socket()</span>
+
+<span class="c1">#b.read_version()</span>
+
+<span class="c1"># while(True):</span>
+<span class="c1">#     b.jump_to_app()</span>
+<span class="c1">#     b.connect()</span>
+<span class="c1">#     data = &quot;&quot;</span>
+<span class="c1">#     time.sleep(2)</span>
+<span class="c1">#     data += b.socket.recv(250)</span>
+<span class="c1">#     b.close_socket()</span>
+<span class="c1">#     print data</span>
+
+<span class="c1">#b = Bootloader()</span>
+<span class="c1">#count = 1</span>
+<span class="c1">#while(count&gt;0):</span>
+<span class="c1">#    count -= 1</span>
+<span class="c1">#    print&quot;reading version&quot;</span>
+<span class="c1">#    b.read_version()</span>
+<span class="c1">#    print &quot;&quot;</span>
+<span class="c1">#    #print &quot;eraseing flash&quot;</span>
+<span class="c1">#    #b.erase_flash()</span>
+<span class="c1">#    #print &quot;&quot;</span>
+<span class="c1">#    #print &quot;programming flash&quot;</span>
+<span class="c1">#    #b.program_flash(&quot;020000040000fa&quot;)</span>
+<span class="c1">#    #b.program_flash(&quot;020000041d00dd&quot;)</span>
+<span class="c1">#    #data_record = &quot;100010000600400f0000000000601a40c0045a7f34100020000500401300000000019d1a3c881f5a275c&quot;</span>
+<span class="c1">#    #b.program_flash(data_record)</span>
+<span class="c1">#    #b.close_socket()</span>
+<span class="c1">#    b.connect()</span>
+<span class="c1">#    b.program_file(&#39;test_hola.hex&#39;, False)</span>
+<span class="c1">#    b.close_socket()</span>
+<span class="c1">#    #result = b.calculate_record_crc(data_record)</span>
+<span class="c1">#    #b.print_modbus(str(result[2]))</span>
+<span class="c1">#    print &quot;&quot;</span>
+<span class="c1">#    print &quot;reading crc&quot;</span>
+<span class="c1">#    #b.read_crc(bytearray.fromhex(&quot;9d000010&quot;),bytearray.fromhex(&quot;00000010&quot;))</span>
+<span class="c1">#    #b.erase_flash()</span>
+<span class="c1">#    b.jump_to_app()</span>
+<span class="c1">#    </span>
+<span class="c1">#    b.connect()</span>
+<span class="c1">#    time.sleep(1) </span>
+<span class="c1">#    data = b.socket.recv(22)</span>
+<span class="c1">#    b.close_socket()</span>
+<span class="c1">#    print data</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Joaquin Aldunate V
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

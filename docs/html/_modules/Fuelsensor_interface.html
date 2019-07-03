@@ -1,0 +1,698 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Fuelsensor_interface &mdash; Fuelsensor api 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Fuelsensor api
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../low_level_interface.html">Estructura de paquetes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../code.html">Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Fuelsensor api</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>Fuelsensor_interface</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for Fuelsensor_interface</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">crcmod</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="c1">#import matplotlib.pyplot as plt</span>
+<span class="c1">#AN1388 Microchip bootloader implementation</span>
+
+<span class="c1">#constants declaration</span>
+
+<span class="c1">##Command description</span>
+<span class="n">BK_TIMESERIES</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">GET_NORM_ECHO</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">GET_SDFT_ECHO</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">RESET</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">GET_HEIGHT</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">GET_POS</span> <span class="o">=</span> <span class="mi">6</span>
+<span class="n">GET_PARAM</span> <span class="o">=</span> <span class="mi">7</span>
+<span class="n">SET_PARAM</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">RESTORE_DEFAULT_PARAMS_TO_FLASH</span> <span class="o">=</span> <span class="mi">9</span>
+<span class="n">BACKUP_PARAMS_TO_FLASH</span> <span class="o">=</span> <span class="mi">10</span>
+
+
+<span class="c1">#TODO: create a list of PARAMS constants using fields &quot;PARAM_ID&quot; and &quot;nombre&quot; from</span>
+<span class="c1"># the table &quot;lista de parametros&quot; located at</span>
+<span class="c1">#https://fuelsensor.readthedocs.io/en/latest/low_level_interface.html</span>
+
+
+
+<span class="n">crc16</span> <span class="o">=</span> <span class="n">crcmod</span><span class="o">.</span><span class="n">predefined</span><span class="o">.</span><span class="n">mkPredefinedCrcFun</span><span class="p">(</span><span class="s2">&quot;xmodem&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Param"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Param">[docs]</a><span class="k">class</span> <span class="nc">Param</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Param Class &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">interface</span><span class="p">,</span> <span class="n">param_id</span><span class="p">,</span> <span class="n">num_bytes</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Param</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_id</span> <span class="o">=</span> <span class="n">param_id</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_bytes</span> <span class="o">=</span> <span class="n">num_bytes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interface</span> <span class="o">=</span> <span class="n">interface</span>
+    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bytes</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">get_param_byte</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_id</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_bytes</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">get_param_unsigned_short</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_id</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_bytes</span> <span class="o">==</span><span class="mi">4</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">get_param_float_32</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_id</span><span class="p">)</span>
+            
+    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bytes</span> <span class="o">==</span><span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">set_param_byte</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_id</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">get_param_byte</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_id</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bytes</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">set_param_unsigned_short</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_id</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">get_param_unsigned_short</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_id</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bytes</span> <span class="o">==</span> <span class="mi">4</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">set_param_float_32</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_id</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">get_param_float_32</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_id</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Params"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Params">[docs]</a><span class="k">class</span> <span class="nc">Params</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Params class &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Params</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_DATA_VECTOR_TYPE</span> <span class="o">=</span> <span class="mh">0x00</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_DATA_VECTOR_OFFSET</span> <span class="o">=</span> <span class="mh">0x02</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_PGA_GAIN</span> <span class="o">=</span> <span class="mh">0x04</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_NUM_PULSES</span> <span class="o">=</span> <span class="mh">0x05</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_PULSE_PERIOD</span> <span class="o">=</span> <span class="mh">0x06</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_PULSE_WIDTH</span> <span class="o">=</span> <span class="mh">0x07</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_RES_HV</span> <span class="o">=</span> <span class="mh">0x08</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_MIN_PEAK_VALUE_TH</span> <span class="o">=</span> <span class="mh">0x09</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_K</span> <span class="o">=</span> <span class="mh">0x0d</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_N</span> <span class="o">=</span> <span class="mh">0x0f</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_I_MIN</span> <span class="o">=</span> <span class="mh">0x11</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_MIN_ECO_LIMIT</span> <span class="o">=</span> <span class="mh">0x13</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_MAX_ECO_LIMIT</span> <span class="o">=</span> <span class="mh">0x14</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_VAR_NORM</span> <span class="o">=</span> <span class="mh">0x15</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_PEAK</span> <span class="o">=</span> <span class="mh">0x19</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_SOUND_SPEED</span> <span class="o">=</span> <span class="mh">0x1d</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_SAMPLE_RATE</span> <span class="o">=</span> <span class="mh">0x1f</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_N_SAMPLES_ONE_VALID</span> <span class="o">=</span> <span class="mh">0x21</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SKIP_PARAM</span> <span class="o">=</span> <span class="mh">0x23</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_vector_type</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">PARAM_DATA_VECTOR_TYPE</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_vector_offset</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">PARAM_DATA_VECTOR_OFFSET</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pga_gain</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_PGA_GAIN</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_pulses</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_NUM_PULSES</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pulse_period</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_PULSE_PERIOD</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pulse_width</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_PULSE_WIDTH</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">res_hv</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_RES_HV</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_min_peak_value_th</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_MIN_PEAK_VALUE_TH</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_k</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_K</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_n</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_N</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_i_min</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_I_MIN</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_min_eco_limit</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_MIN_ECO_LIMIT</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_max_eco_limit</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_MAX_ECO_LIMIT</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_var_norm</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_VAR_NORM</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_peak</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_PEAK</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_sound_speed</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_SOUND_SPEED</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_sample_rate</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_SAMPLE_RATE</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sdft_n_samples_one_valid</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SDFT_N_SAMPLES_ONE_VALID</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_param</span> <span class="o">=</span> <span class="n">Param</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PARAM_SKIP_PARAM</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Node">[docs]</a><span class="k">class</span> <span class="nc">Node</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Node class &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Node</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fs_interface</span> <span class="o">=</span> <span class="n">Fuelsensor_interface</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">Params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fs_interface</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Fuelsensor_interface"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface">[docs]</a><span class="k">class</span> <span class="nc">Fuelsensor_interface</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fuelsensor_interface class &quot;&quot;&quot;</span>
+
+    <span class="c1">#command constants</span>
+    <span class="n">BK_TIMESERIES</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">GET_NORM_ECHO</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">GET_SDFT_ECHO</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">RESET</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">GET_HEIGHT</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">GET_POS</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">GET_PARAM</span> <span class="o">=</span> <span class="mi">7</span>
+    <span class="n">SET_PARAM</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">RESTORE_DEFAULT_PARAMS_TO_FLASH</span> <span class="o">=</span> <span class="mi">9</span>
+    <span class="n">BACKUP_PARAMS_TO_FLASH</span> <span class="o">=</span> <span class="mi">10</span>
+
+    <span class="c1">#lets add params for datalogger CMD</span>
+    <span class="n">GET_REG</span> <span class="o">=</span> <span class="mi">11</span>
+    <span class="n">GET_REG_NUM</span> <span class="o">=</span> <span class="mi">12</span>
+
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Fuelsensor_interface</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TCP_IP</span> <span class="o">=</span> <span class="s1">&#39;192.168.0.10&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TCP_PORT</span> <span class="o">=</span> <span class="mi">5000</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">BUFFER_SIZE</span>  <span class="o">=</span> <span class="mi">2048</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Fuelsensor_interface.send_cmd"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.send_cmd">[docs]</a>    <span class="k">def</span> <span class="nf">send_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span><span class="n">rx_len</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; send a cmd to the device &quot;&quot;&quot;</span>
+        <span class="n">packet</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="n">packet</span> <span class="o">+=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&gt;H&quot;</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span> <span class="c1"># 2 bytes</span>
+
+        <span class="c1">#fill with zeros so 4 bytes filled on the params field. </span>
+        <span class="c1">#for i in range(4 - len(params)):</span>
+        <span class="c1">#        packet.append(0)</span>
+
+        <span class="c1">#fill with params values #4 bytes</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)):</span>
+            <span class="n">packet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="c1">#crc, not implemented yet</span>
+        <span class="n">packet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">packet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1">#packet = bytearray()</span>
+        <span class="c1">#for i in range(12):</span>
+        <span class="c1">#    packet.append(i)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_modbus</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">packet</span><span class="p">))</span>
+
+        <span class="k">while</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">rx_len</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">receive_retry</span><span class="p">(</span><span class="n">packet</span><span class="p">,</span> <span class="n">rx_len</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">connect</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">rx_len</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">rx_len</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="c1">#chunk garbage bytes</span>
+                    <span class="n">crc</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:])</span>
+                    <span class="n">calculated_crc</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&gt;H&#39;</span><span class="p">,</span> <span class="n">crc16</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span> <span class="mi">2</span><span class="p">])))</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">print_modbus</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="n">crc</span> <span class="o">==</span> <span class="n">calculated_crc</span><span class="p">:</span>
+                        <span class="k">break</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;bad crc&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># print len(data)</span>
+                    <span class="c1">#self.print_modbus(data)</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;not enougth rx bytes&quot;</span><span class="p">)</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1">#send packet in batches of 4 bytes</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">send_batch</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+                <span class="k">return</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="Fuelsensor_interface.bk_timeseries"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.bk_timeseries">[docs]</a>    <span class="k">def</span> <span class="nf">bk_timeseries</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; backup timeseries on node&quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_cmd_without_params</span><span class="p">(</span><span class="n">BK_TIMESERIES</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+<div class="viewcode-block" id="Fuelsensor_interface.get_norm_echo"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.get_norm_echo">[docs]</a>    <span class="k">def</span> <span class="nf">get_norm_echo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return normalized echo&quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="n">params</span> <span class="o">+=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&gt;H&#39;</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">+=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&gt;H&#39;</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+            <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_cmd</span><span class="p">(</span><span class="n">GET_NORM_ECHO</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">length</span> <span class="o">+</span><span class="mi">4</span><span class="p">)</span> <span class="c1">#+4 is for the  header </span>
+        <span class="k">return</span> <span class="n">res</span></div>
+<div class="viewcode-block" id="Fuelsensor_interface.get_sdft_echo"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.get_sdft_echo">[docs]</a>    <span class="k">def</span> <span class="nf">get_sdft_echo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span><span class="p">,</span><span class="n">length</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; returns sdft of echo&quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="n">params</span> <span class="o">+=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&gt;H&#39;</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">+=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&gt;H&#39;</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+            <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_cmd</span><span class="p">(</span><span class="n">GET_SDFT_ECHO</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">length</span><span class="o">+</span><span class="mi">4</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span>        </div>
+
+<div class="viewcode-block" id="Fuelsensor_interface.get_complete_norm_echo"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.get_complete_norm_echo">[docs]</a>    <span class="k">def</span> <span class="nf">get_complete_norm_echo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; get normalized echo timeseries of length &#39;length&#39;&quot;&quot;&quot;</span>
+        <span class="n">truncated_len</span> <span class="o">=</span>  <span class="nb">int</span><span class="p">(</span><span class="n">length</span> <span class="o">/</span> <span class="mi">50</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">truncated_len</span><span class="p">):</span>
+            <span class="k">while</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">partial_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_norm_echo</span><span class="p">((</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">50</span><span class="p">,</span><span class="mi">50</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">partial_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">50</span><span class="p">:</span> 
+                    <span class="k">break</span><span class="p">;</span>
+            <span class="n">data</span> <span class="o">+=</span><span class="n">partial_data</span>
+        <span class="nb">print</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>  
+        <span class="k">return</span> <span class="n">data</span>  </div>
+
+<div class="viewcode-block" id="Fuelsensor_interface.get_complete_sdft_echo"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.get_complete_sdft_echo">[docs]</a>    <span class="k">def</span> <span class="nf">get_complete_sdft_echo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; get sdft echo timeseries of length &#39;length&#39; &quot;&quot;&quot;</span>
+        <span class="n">truncated_len</span> <span class="o">=</span>  <span class="nb">int</span><span class="p">(</span><span class="n">length</span> <span class="o">/</span> <span class="mi">50</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">truncated_len</span><span class="p">):</span>
+            <span class="k">while</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">partial_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sdft_echo</span><span class="p">((</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">50</span><span class="p">,</span><span class="mi">50</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">partial_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">50</span><span class="p">:</span> 
+                    <span class="k">break</span><span class="p">;</span>
+            <span class="n">data</span> <span class="o">+=</span><span class="n">partial_data</span>
+        <span class="nb">print</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>  
+        <span class="k">return</span> <span class="n">data</span>  </div>
+
+<div class="viewcode-block" id="Fuelsensor_interface.get_height"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.get_height">[docs]</a>    <span class="k">def</span> <span class="nf">get_height</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; get hight of liquid in meters.&quot;&quot;&quot;</span>    
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_cmd_without_params</span><span class="p">(</span><span class="n">GET_HEIGHT</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+
+        <span class="n">height</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;f&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">8</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s2">&quot;height: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">height</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; [m]&quot;</span>
+        <span class="k">return</span> <span class="n">height</span></div>
+
+<div class="viewcode-block" id="Fuelsensor_interface.get_pos"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.get_pos">[docs]</a>    <span class="k">def</span> <span class="nf">get_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; get variable pos, an int value proportional to hight&quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_cmd_without_params</span><span class="p">(</span><span class="n">GET_POS</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_modbus</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;f&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">8</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s2">&quot;pos: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; [samples]&quot;</span> 
+        <span class="k">return</span> <span class="n">pos</span>   </div>
+<div class="viewcode-block" id="Fuelsensor_interface.reset"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; reset fuelsensor and enter into Bootloader mode&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_cmd_without_params</span><span class="p">(</span><span class="n">RESET</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Fuelsensor_interface.send_cmd_without_params"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.send_cmd_without_params">[docs]</a>    <span class="k">def</span> <span class="nf">send_cmd_without_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">num_bytes</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; send command name, filling params with 4 zeros&quot;&quot;&quot;</span>
+        <span class="n">params_field</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="n">params_field</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&gt;BBBBBBBB&#39;</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> 
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_cmd</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">params_field</span><span class="p">,</span><span class="n">num_bytes</span><span class="p">)</span></div>
+        
+
+    <span class="k">def</span> <span class="nf">check_crc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="n">calculated_crc</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="n">calculated_crc</span> <span class="o">+=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;H&quot;</span><span class="p">,</span> <span class="n">crc16</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="o">-</span> <span class="mi">2</span><span class="p">])))</span>
+        <span class="c1">#self.print_modbus(str(calculated_crc))</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">calculated_crc</span> <span class="o">==</span> <span class="n">msg</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="o">-</span><span class="mi">2</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">msg</span><span class="p">)]):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># print &quot;packet content: &quot;,</span>
+        <span class="c1"># print(&quot;:&quot;.join(&quot;{:02x}&quot;.format(ord(c)) for c in str(packet)))</span>
+
+
+<div class="viewcode-block" id="Fuelsensor_interface.connect"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.connect">[docs]</a>    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Try to stablish a tcp/ip connection with fuelSensor device&quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s2">&quot;connecting...&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">TCP_IP</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TCP_PORT</span><span class="p">))</span>
+                <span class="c1">#self.socket.settimeout(None)</span>
+                <span class="nb">print</span> <span class="s2">&quot;success!&quot;</span>
+                <span class="k">return</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s2">&quot;can&#39;t connect&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span></div>
+                <span class="c1">#return</span>
+
+    <span class="k">def</span> <span class="nf">receive_retry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">packet</span><span class="p">,</span><span class="n">length</span><span class="p">,</span><span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span><span class="n">connect</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">stop_time</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">connect</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span> 
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">verbose</span><span class="p">):</span>
+                    <span class="nb">print</span> <span class="s2">&quot;sending: &quot;</span><span class="p">,</span>
+                    <span class="c1">#self.print_modbus(str(packet))</span>
+                <span class="n">start_time</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">)</span>
+                <span class="c1">#self.print_modbus(str(packet))</span>
+
+                <span class="c1">#self.socket.send(packet)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">send_batch</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+                
+                <span class="n">counter</span> <span class="o">=</span> <span class="mi">5</span> 
+                <span class="n">data</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+                <span class="k">while</span><span class="p">(</span><span class="n">counter</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">):</span>
+                    <span class="n">counter</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">data</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">BUFFER_SIZE</span><span class="p">)</span>
+                    
+                    <span class="c1"># if(verbose):</span>
+                    <span class="c1">#     print data</span>
+                    <span class="c1">#self.print_modbus(data)</span>
+                     
+                    <span class="k">if</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">length</span><span class="p">):</span>
+                        <span class="n">stop_time</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">)</span>
+                        <span class="k">if</span><span class="p">(</span><span class="n">connect</span><span class="p">):</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+                        <span class="k">if</span><span class="p">(</span><span class="n">verbose</span><span class="p">):</span>
+                            <span class="nb">print</span> <span class="s2">&quot;time elapsed: &quot;</span><span class="p">,</span>
+                            <span class="nb">print</span> <span class="nb">str</span><span class="p">(</span><span class="n">stop_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+                            <span class="nb">print</span> <span class="s2">&quot;data received ok: &quot;</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">print_modbus</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+
+                        <span class="k">return</span> <span class="n">data</span>
+                
+            <span class="k">except</span><span class="p">:</span>
+                <span class="c1">#self.print_modbus(data)</span>
+                <span class="nb">print</span> <span class="s2">&quot;no answer...&quot;</span><span class="p">,</span>
+                
+                <span class="k">if</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Fuelsensor_interface.close_socket"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.close_socket">[docs]</a>    <span class="k">def</span> <span class="nf">close_socket</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Try to close tcp/ip SOCKET with FuelSensor device&quot;&quot;&quot;</span>
+        <span class="c1">#lets close socket</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+        <span class="c1">#lets reasign socket so it can be opened again</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">print_modbus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">res</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:02x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">))</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">res</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">backup_timeseries</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_cmd</span><span class="p">(</span><span class="n">BK_TIMESERIES</span><span class="p">,</span><span class="n">params</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_id</span><span class="p">,</span> <span class="n">num_bytes_response</span><span class="p">):</span>
+        <span class="c1">#TODO: Implement get_param function. get_param should query, print and return the parameter given by param_id. </span>
+        <span class="c1"># using the command self.send_cmd. Return value should be converted from bytearray to type described at</span>
+        <span class="c1">#table &quot;Lista de parametros &quot; located at https://fuelsensor.readthedocs.io/en/latest/low_level_interface.html. Use , using struct.unpack() function for that.</span>
+        <span class="c1">#second argument from send_cmd should be 4 bytes. Add them at the end. </span>
+
+        <span class="c1">#lets transform param_id into a 4 bytes bytearra() with the last byte</span>
+        <span class="n">param_field</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&gt;BBBBBBBB&#39;</span><span class="p">,</span> <span class="n">param_id</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">param_value_bytearray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_cmd</span><span class="p">(</span><span class="n">GET_PARAM</span><span class="p">,</span> <span class="n">param_field</span><span class="p">,</span> <span class="n">num_bytes_response</span> <span class="o">+</span><span class="mi">4</span><span class="p">)</span> <span class="c1">#+4 is for header size </span>
+        <span class="c1">#check number of bytes returned, it seems that answer is always 4 bytes ??</span>
+
+        <span class="c1">#complete for other param_id values, struct.unpack format should be</span>
+        <span class="c1"># &#39;&#39;</span>
+        <span class="k">return</span> <span class="n">param_value_bytearray</span>
+
+    <span class="k">def</span> <span class="nf">get_param_byte</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">param_id</span><span class="p">):</span>
+        <span class="n">param_value_bytearray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">param_id</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&gt;B&#39;</span><span class="p">,</span> <span class="n">param_value_bytearray</span><span class="p">[</span><span class="mi">4</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_param_unsigned_short</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">param_id</span><span class="p">):</span>
+        <span class="n">param_value_bytearray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">param_id</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;H&#39;</span><span class="p">,</span><span class="n">param_value_bytearray</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">8</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_param_float_32</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_id</span><span class="p">):</span>
+        <span class="n">param_value_bytearray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">param_id</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;f&#39;</span><span class="p">,</span> <span class="n">param_value_bytearray</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">8</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">set_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_id</span><span class="p">,</span> <span class="n">num_bytes_response</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">param_field</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&gt;BBBB&#39;</span><span class="p">,</span><span class="n">param_id</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">param_field</span> <span class="o">+=</span> <span class="n">value</span>
+        <span class="c1">#update param on the remote node</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_cmd</span><span class="p">(</span><span class="n">SET_PARAM</span><span class="p">,</span> <span class="n">param_field</span><span class="p">,</span> <span class="n">num_bytes_response</span> <span class="o">+</span><span class="mi">4</span><span class="p">)</span> <span class="c1">#+4 is for header size</span>
+        <span class="c1">#update param on the local representation of the node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_modbus</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">response</span>
+
+    <span class="k">def</span> <span class="nf">set_param_byte</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_id</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="n">value_field</span> <span class="o">=</span>  <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&gt;BBBB&#39;</span><span class="p">,</span><span class="n">value</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">set_param</span><span class="p">(</span><span class="n">param_id</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">value_field</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">response</span>
+
+    <span class="k">def</span> <span class="nf">set_param_unsigned_short</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_id</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="n">value_field</span> <span class="o">=</span>  <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&lt;HH&#39;</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_param</span><span class="p">(</span><span class="n">param_id</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">value_field</span><span class="p">)</span>    
+        <span class="k">return</span> <span class="n">response</span>
+    <span class="k">def</span> <span class="nf">set_param_float_32</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_id</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="n">value_field</span> <span class="o">=</span>  <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&lt;f&#39;</span><span class="p">,</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_param</span><span class="p">(</span><span class="n">param_id</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">value_field</span><span class="p">)</span>  
+        <span class="k">return</span> <span class="n">response</span>
+
+    <span class="k">def</span> <span class="nf">send_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">packet</span><span class="p">):</span>
+        <span class="n">packet_size</span> <span class="o">=</span> <span class="mi">4</span> 
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span><span class="o">/</span><span class="n">packet_size</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">packet</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">packet_size</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="n">packet_size</span><span class="o">+</span><span class="n">packet_size</span><span class="p">])</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.05</span><span class="p">)</span>  
+
+<div class="viewcode-block" id="Fuelsensor_interface.get_reg"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.get_reg">[docs]</a>    <span class="k">def</span> <span class="nf">get_reg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; returns last unread log regsiter as raw_log. If there is no registers it returns 0.</span>
+<span class="sd">        A raw_log correspond to a bytearray() object that has to be parsed. Log Class implement this parser &quot;&quot;&quot;</span></div>
+        <span class="c1">#call get_cmd with parameter GET_REG = 11 and length determined by number of bytes inside a log</span>
+
+<div class="viewcode-block" id="Fuelsensor_interface.get_reg_num"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Fuelsensor_interface.get_reg_num">[docs]</a>    <span class="k">def</span> <span class="nf">get_reg_num</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; returns number of available log registers that have not being read yet&quot;&quot;&quot;</span></div></div>
+        <span class="c1">#GET_REG_NUM = 12</span>
+
+
+<div class="viewcode-block" id="Log"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Log">[docs]</a><span class="k">class</span> <span class="nc">Log</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Log class. It describes the sructure of data logs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        raw_log (bytearray) : bytearray with raw_log info.</span>
+<span class="sd">     &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_log</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Log constructor. If no raw_log is given, log attributes are filled with default values&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Log</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="c1">#if raw_log = 0, use default values</span>
+        <span class="c1">#else parse raw_log and update attributes</span>
+        <span class="c1">#attributes:</span>
+        <span class="c1"># timestamp, hight</span>
+<div class="viewcode-block" id="Log.log_parser"><a class="viewcode-back" href="../code.html#Fuelsensor_interface.Log.log_parser">[docs]</a>    <span class="k">def</span> <span class="nf">log_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">raw_log</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; read raw_log, parse it, create and update object attributes&quot;&quot;&quot;</span>        </div></div>
+        
+
+
+
+<span class="c1"># fs_interface = Fuelsensor_interface()</span>
+<span class="c1"># fs_interface.connect()</span>
+<span class="c1"># fs_interface.reset()</span>
+<span class="c1"># fs_interface.close_socket()</span>
+<span class="c1"># for i in range(1,10):</span>
+<span class="c1">#     fs_interface.connect()</span>
+<span class="c1">#     params = bytearray()</span>
+<span class="c1">#     #fs_interface.reset()</span>
+<span class="c1">#     fs_interface.get_height()</span>
+<span class="c1">#     # fs_interface.reset()</span>
+<span class="c1">#     # fs_interface.reset()</span>
+<span class="c1">#     fs_interface.close_socket()</span>
+<span class="c1">#     time.sleep(0.5)</span>
+<span class="c1">#fs_interface.send_cmd(BK_TIMESERIES, params, 8)</span>
+<span class="c1"># time.sleep(0.5)</span>
+
+<span class="c1"># num_of_samples = 16000;</span>
+<span class="c1"># data_bytes_norm = fs_interface.get_complete_norm_echo(num_of_samples)</span>
+<span class="c1"># #data_bytes_sdft = fs_interface.get_complete_sdft_echo(num_of_samples)</span>
+<span class="c1"># #fs_interface.send_cmd(RESET, params, 0)</span>
+<span class="c1"># fs_interface.get_height()</span>
+<span class="c1"># fs_interface.get_pos()</span>
+<span class="c1"># fs_interface.close_socket()</span>
+
+
+<span class="c1"># # data_bytes_sdft = fs_interface.get_complete_sdft_echo(num_of_samples)</span>
+<span class="c1"># # fs_interface.close_socket()</span>
+
+<span class="c1"># data_norm = []</span>
+<span class="c1"># for i in range(0,num_of_samples/4):</span>
+<span class="c1">#     new_data = struct.unpack(&#39;&lt;f&#39;, data_bytes_norm[i*4:(i+1)*4])</span>
+
+<span class="c1">#     # if (new_data[0] &gt; 1 or new_data[0] &lt; -1):</span>
+<span class="c1">#     #     print &quot;new_data:&quot; + str(new_data)</span>
+<span class="c1">#     #     pass</span>
+<span class="c1">#     #     new_data = (0.5,1)</span>
+<span class="c1">#     data_norm.append(new_data[0])</span>
+<span class="c1"># print len(data_norm)</span>
+
+<span class="c1"># plt.plot(data_norm)</span>
+<span class="c1"># plt.grid(True)</span>
+<span class="c1"># plt.title(&#39;Echo vs time&#39;)</span>
+<span class="c1"># plt.ylabel(&#39;norm echo&#39;)</span>
+<span class="c1"># plt.show()</span>
+
+<span class="c1"># data_sdft = []</span>
+<span class="c1"># for i in range(0,num_of_samples/4):</span>
+<span class="c1">#     new_data = struct.unpack(&#39;&lt;f&#39;, data_bytes_sdft[i*4:(i+1)*4])</span>
+<span class="c1">#     data_sdft.append(new_data[0])</span>
+<span class="c1"># print len(data_sdft)</span>
+
+
+<span class="c1"># plt.plot(data_sdft)</span>
+<span class="c1"># plt.ylabel(&#39;norm echo&#39;)</span>
+<span class="c1"># plt.show()</span>
+
+
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Joaquin Aldunate V
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

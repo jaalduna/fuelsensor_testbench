@@ -1,0 +1,380 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Documentation &mdash; Fuelsensor api 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Estructura de paquetes" href="low_level_interface.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Fuelsensor api
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="low_level_interface.html">Estructura de paquetes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Fuelsensor api</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Documentation</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/code.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-Bootloader">
+<span id="documentation"></span><h1>Documentation<a class="headerlink" href="#module-Bootloader" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="Bootloader.Bootloader">
+<em class="property">class </em><code class="descclassname">Bootloader.</code><code class="descname">Bootloader</code><span class="sig-paren">(</span><em>tcp_ip='192.168.0.10'</em>, <em>tcp_port=5000</em>, <em>timeout=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Bootloader.html#Bootloader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Bootloader.Bootloader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bootloader class</p>
+<dl class="method">
+<dt id="Bootloader.Bootloader.close_socket">
+<code class="descname">close_socket</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Bootloader.html#Bootloader.close_socket"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Bootloader.Bootloader.close_socket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Try to close socket connection.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Bootloader.Bootloader.connect">
+<code class="descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Bootloader.html#Bootloader.connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Bootloader.Bootloader.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Try to stablish a tcp/ip socket with FuelSensor device.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Bootloader.Bootloader.erase_flash">
+<code class="descname">erase_flash</code><span class="sig-paren">(</span><em>connect=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Bootloader.html#Bootloader.erase_flash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Bootloader.Bootloader.erase_flash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Erase program memory flash from FuelSensor device.
+This function only clear the app. Bootloader persist on memory.</p>
+<p>‘connect’ parameter controls if tcp connection is stablished before executing the the erase flash operation.
+Always keep it as True, or wich is the same, call the function with the default values as erase_flash()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Bootloader.Bootloader.jump_to_app">
+<code class="descname">jump_to_app</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Bootloader.html#Bootloader.jump_to_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Bootloader.Bootloader.jump_to_app" title="Permalink to this definition">¶</a></dt>
+<dd><p>Jump to application from bootloader.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Bootloader.Bootloader.program_file">
+<code class="descname">program_file</code><span class="sig-paren">(</span><em>file_name</em>, <em>connect=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Bootloader.html#Bootloader.program_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Bootloader.Bootloader.program_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Program file specified in parameter ‘file_name’ .</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Bootloader.Bootloader.read_version">
+<code class="descname">read_version</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Bootloader.html#Bootloader.read_version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Bootloader.Bootloader.read_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return bootloader firmware version from FuelSensor device.
+Function calls internally connect() and close_socket(), so there is no need to call them manually.</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-Fuelsensor_interface"></span><dl class="class">
+<dt id="Fuelsensor_interface.Fuelsensor_interface">
+<em class="property">class </em><code class="descclassname">Fuelsensor_interface.</code><code class="descname">Fuelsensor_interface</code><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fuelsensor_interface class</p>
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.bk_timeseries">
+<code class="descname">bk_timeseries</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.bk_timeseries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.bk_timeseries" title="Permalink to this definition">¶</a></dt>
+<dd><p>backup timeseries on node</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.close_socket">
+<code class="descname">close_socket</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.close_socket"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.close_socket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Try to close tcp/ip SOCKET with FuelSensor device</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.connect">
+<code class="descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Try to stablish a tcp/ip connection with fuelSensor device</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.get_complete_norm_echo">
+<code class="descname">get_complete_norm_echo</code><span class="sig-paren">(</span><em>length</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.get_complete_norm_echo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.get_complete_norm_echo" title="Permalink to this definition">¶</a></dt>
+<dd><p>get normalized echo timeseries of length ‘length’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.get_complete_sdft_echo">
+<code class="descname">get_complete_sdft_echo</code><span class="sig-paren">(</span><em>length</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.get_complete_sdft_echo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.get_complete_sdft_echo" title="Permalink to this definition">¶</a></dt>
+<dd><p>get sdft echo timeseries of length ‘length’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.get_height">
+<code class="descname">get_height</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.get_height"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.get_height" title="Permalink to this definition">¶</a></dt>
+<dd><p>get hight of liquid in meters.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.get_norm_echo">
+<code class="descname">get_norm_echo</code><span class="sig-paren">(</span><em>offset</em>, <em>length</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.get_norm_echo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.get_norm_echo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return normalized echo</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.get_pos">
+<code class="descname">get_pos</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.get_pos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.get_pos" title="Permalink to this definition">¶</a></dt>
+<dd><p>get variable pos, an int value proportional to hight</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.get_reg">
+<code class="descname">get_reg</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.get_reg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.get_reg" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns last unread log regsiter as raw_log. If there is no registers it returns 0.
+A raw_log correspond to a bytearray() object that has to be parsed. Log Class implement this parser</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.get_reg_num">
+<code class="descname">get_reg_num</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.get_reg_num"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.get_reg_num" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns number of available log registers that have not being read yet</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.get_sdft_echo">
+<code class="descname">get_sdft_echo</code><span class="sig-paren">(</span><em>offset</em>, <em>length</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.get_sdft_echo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.get_sdft_echo" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns sdft of echo</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.reset">
+<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>reset fuelsensor and enter into Bootloader mode</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.send_cmd">
+<code class="descname">send_cmd</code><span class="sig-paren">(</span><em>cmd</em>, <em>params</em>, <em>rx_len</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.send_cmd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.send_cmd" title="Permalink to this definition">¶</a></dt>
+<dd><p>send a cmd to the device</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fuelsensor_interface.Fuelsensor_interface.send_cmd_without_params">
+<code class="descname">send_cmd_without_params</code><span class="sig-paren">(</span><em>name</em>, <em>num_bytes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Fuelsensor_interface.send_cmd_without_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Fuelsensor_interface.send_cmd_without_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>send command name, filling params with 4 zeros</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Fuelsensor_interface.Log">
+<em class="property">class </em><code class="descclassname">Fuelsensor_interface.</code><code class="descname">Log</code><span class="sig-paren">(</span><em>raw_log=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Log class. It describes the sructure of data logs.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>raw_log (bytearray) : bytearray with raw_log info.</dd>
+</dl>
+<dl class="method">
+<dt id="Fuelsensor_interface.Log.log_parser">
+<code class="descname">log_parser</code><span class="sig-paren">(</span><em>raw_log</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Log.log_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Log.log_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>read raw_log, parse it, create and update object attributes</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Fuelsensor_interface.Node">
+<em class="property">class </em><code class="descclassname">Fuelsensor_interface.</code><code class="descname">Node</code><a class="reference internal" href="_modules/Fuelsensor_interface.html#Node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Node class</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="Fuelsensor_interface.Param">
+<em class="property">class </em><code class="descclassname">Fuelsensor_interface.</code><code class="descname">Param</code><span class="sig-paren">(</span><em>interface</em>, <em>param_id</em>, <em>num_bytes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Param Class</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="Fuelsensor_interface.Params">
+<em class="property">class </em><code class="descclassname">Fuelsensor_interface.</code><code class="descname">Params</code><span class="sig-paren">(</span><em>interface</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fuelsensor_interface.html#Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fuelsensor_interface.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params class</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="low_level_interface.html" class="btn btn-neutral" title="Estructura de paquetes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Joaquin Aldunate V
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

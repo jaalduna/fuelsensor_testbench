@@ -1,0 +1,1 @@
+copy C:\microchip\harmony\v2_06\apps\aiko1\firmware\aiko1.X\dist\default\production\aiko1.X.production.hex ..\firmware\develop.hex
